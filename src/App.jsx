@@ -5,6 +5,8 @@ function App() {
   const [pais, setPais] = useState({ name: 'Mexico', code: '+52', flag: 'https://flagcdn.com/w20/mx.png' })
   const [query, setQuery] = useState('')
   const [detalle, setDetalle] = useState(null)
+  const [enviando, setEnviando] = useState(false)
+  const [status, setStatus] = useState(null)
 
   const careers = [
     { 
@@ -56,21 +58,21 @@ function App() {
       n: "Becas Estratégicas", 
       d: "Apoyos económicos para permanencia académica.",
       beneficios: "Apoyo alimenticio, beca de transporte estatal y condonaciones por promedio.",
-      detalles: "El 80% de nuestra población estudiantil cuenta con algún estímulo económico.",
+      detalles: "El 80% de los estudiantes cuentan con algún estímulo económico.",
       color: "success"
     },
     { 
       n: "Movilidad Internacional", 
       d: "Intercambios con Francia, Canadá y España.",
       beneficios: "Programa MEXPROTEC para licencias profesionales en el extranjero.",
-      detalles: "Opciones de titulación en universidades internacionales con todo pagado.",
+      detalles: "Opciones de titulación con todo pagado.",
       color: "success"
     },
     { 
       n: "Vinculación Empresarial", 
       d: "Prácticas profesionales y bolsa de trabajo.",
-      beneficios: "Estadías profesionales remuneradas en empresas líderes de la industria.",
-      detalles: "Convenios directos con el sector productivo de Zacatecas y el Bajío.",
+      beneficios: "Estadías profesionales remuneradas en empresas líderes.",
+      detalles: "Convenios directos con el sector productivo.",
       color: "success"
     }
   ]
@@ -88,6 +90,33 @@ function App() {
     const q = query.toLowerCase()
     return [...careers, ...services].filter(i => i.n.toLowerCase().includes(q) || i.d.toLowerCase().includes(q))
   }, [query])
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    setEnviando(true)
+    setStatus(null)
+    const fd = new FormData(e.target)
+    const data = {
+      name: fd.get('name'),
+      correo: fd.get('correo'),
+      movil: pais.code + fd.get('movil'),
+      escuela: fd.get('escuela'),
+      carrera: fd.get('carrera')
+    }
+    try {
+      const s = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      if (s.ok) {
+        setStatus('ok')
+        e.target.reset()
+        setTimeout(() => { setStatus(null); setSeccion('inicio'); }, 2500)
+      } else setStatus('error')
+    } catch { setStatus('error') }
+    finally { setEnviando(false) }
+  }
 
   const Navbar = () => (
     <nav className="navbar navbar-expand navbar-dark bg-dark sticky-top p-0 shadow-lg" style={{ height: '65px' }}>
@@ -114,7 +143,7 @@ function App() {
         <h2 className={`fw-black text-${detalle.color} mb-3`}>{detalle.n}</h2>
         <p className="text-dark fw-bold mb-4">{detalle.d}</p>
         <div className="mb-4">
-          <h6 className="fw-black border-bottom pb-2">Información Técnica</h6>
+          <h6 className="fw-black border-bottom pb-2 text-uppercase small tracking-widest">Información Académica</h6>
           <p className="text-muted mb-2">{detalle.plan || detalle.beneficios}</p>
           {detalle.egreso && <p className="text-muted small"><strong>Egreso:</strong> {detalle.egreso}</p>}
           {detalle.detalles && <p className="text-muted small"><strong>Detalles:</strong> {detalle.detalles}</p>}
@@ -187,14 +216,16 @@ function App() {
         {seccion === 'registro' && (
           <div className="animate-fade-in max-w-registro mx-auto">
             <h2 className="fw-black text-center mb-4 display-5">Formulario de registro</h2>
+            {status === 'ok' && <div className="alert alert-success rounded-4 text-center fw-bold mb-4">Registro guardado con éxito Coyote.</div>}
+            {status === 'error' && <div className="alert alert-danger rounded-4 text-center fw-bold mb-4">Error en la base de datos. Intenta de nuevo.</div>}
             <div className="card border-0 shadow-2xl p-5 rounded-5 bg-white animate-slide-up">
-              <form className="was-validated">
+              <form className="was-validated" onSubmit={onSubmit}>
                 <div className="mb-4 position-relative">
-                  <input type="text" className="form-control border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle" placeholder="Nombre completo" required />
+                  <input type="text" name="name" className="form-control border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle" placeholder="Nombre completo" required />
                   <span className="position-absolute top-50 end-0 translate-middle-y me-4 text-danger fw-black fs-4">!</span>
                 </div>
                 <div className="mb-4 position-relative">
-                  <input type="email" className="form-control border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle" placeholder="Correo electrónico" required />
+                  <input type="email" name="correo" className="form-control border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle" placeholder="Correo electrónico" required />
                   <span className="position-absolute top-50 end-0 translate-middle-y me-4 text-danger fw-black fs-4">!</span>
                 </div>
                 <div className="mb-4 d-flex rounded-4 overflow-hidden border border-danger-subtle" style={{ minHeight: '62px' }}>
@@ -206,18 +237,27 @@ function App() {
                     </select>
                   </div>
                   <div className="position-relative flex-grow-1">
-                    <input type="tel" className="form-control border-0 py-3 ps-4 pe-5 shadow-none bg-transparent" placeholder="Número de teléfono" required />
+                    <input type="tel" name="movil" className="form-control border-0 py-3 ps-4 pe-5 shadow-none bg-transparent" placeholder="Número de teléfono" required />
                     <span className="position-absolute top-50 end-0 translate-middle-y me-4 text-danger fw-black fs-4">!</span>
                   </div>
                 </div>
-                <div className="mb-5 position-relative">
-                  <select className="form-select border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle text-secondary" required>
+                <div className="mb-4 position-relative">
+                  <select name="escuela" className="form-select border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle text-secondary" required>
                     <option value="">Escuela de procedencia</option>
                     <option>COBAEZ</option><option>CECYTEZ</option><option>UAZ</option><option>CONALEP</option>
                   </select>
                   <span className="position-absolute top-50 end-0 translate-middle-y me-5 pe-3 text-danger fw-black fs-4">!</span>
                 </div>
-                <button type="submit" className="btn btn-primary btn-lg w-100 py-3 fw-black uppercase shadow-xl rounded-4 tracking-widest transition-up border-0">Enviar Datos</button>
+                <div className="mb-5 position-relative">
+                  <select name="carrera" className="form-select border-danger-subtle py-3 ps-4 pe-5 rounded-4 shadow-none bg-light-subtle text-secondary" required>
+                    <option value="">Carrera de interés</option>
+                    {careers.map(c => <option key={c.n} value={c.n}>{c.n}</option>)}
+                  </select>
+                  <span className="position-absolute top-50 end-0 translate-middle-y me-5 pe-3 text-danger fw-black fs-4">!</span>
+                </div>
+                <button type="submit" className="btn btn-primary btn-lg w-100 py-3 fw-black uppercase shadow-xl rounded-4 tracking-widest transition-up border-0" disabled={enviando}>
+                  {enviando ? 'Guardando...' : 'Enviar Datos'}
+                </button>
               </form>
             </div>
           </div>
@@ -276,7 +316,7 @@ function App() {
       <style>{`
         .fw-black { font-weight: 900; }
         .max-w-registro { max-width: 850px; }
-        .transition-up { transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
+        .transition-up { transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1); }
         .transition-up:hover { transform: translateY(-15px) scale(1.02); box-shadow: 0 35px 70px rgba(0,0,0,0.1) !important; }
         .animate-fade-in { animation: fadeIn 0.8s ease-out; }
         .animate-slide-up { animation: slideUp 0.9s cubic-bezier(0.19, 1, 0.22, 1); }
